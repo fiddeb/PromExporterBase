@@ -4,4 +4,5 @@ package build
 var (
 	// Version app version
 	Version = "0.0.0-dev"
+	Branch = "main"
 )

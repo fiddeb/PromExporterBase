@@ -1,13 +1,8 @@
 package exporter
 
 import (
-	//"fmt"
-
 	"github.com/go-kit/log"
-	//"github.com/go-kit/log/level"
 	"math/rand"
-
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -35,7 +30,8 @@ var (
 )
 
 var (
-  val int = 0
+  val1 int = 0
+  val2 int = 0
 )
 
 // ExporterOpts configures options for connecting to target.
@@ -65,19 +61,20 @@ func New(opts ExporterOpts, logger log.Logger) (*Exporter, error) {
 }
 
 
-// Describe describes all the metrics ever exported by the Consul exporter. It
+// Describe describes all the metrics ever exported by the exporter. It
 // implements prometheus.Collector.
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- up
 	ch <- rndgen
+	ch <- testCounter
 }
 
-// Collect fetches the stats from configured Consul location and delivers them
+// Collect fetches the stats and delivers them
 // as Prometheus metrics. It implements prometheus.Collector.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 	ok := e.collectRandomGenMetric(ch)
-	ok = e.collectTestCoubterMetric(ch) && ok
+	ok = e.collectTestCounterMetric(ch) && ok
 
 
 
@@ -103,21 +100,22 @@ func (e *Exporter) collectRandomGenMetric(ch chan<- prometheus.Metric) bool {
 	return true
 }
 
-func (e *Exporter) collectTestCoubterMetric(ch chan<- prometheus.Metric) bool {
-	value := float64(getCounterValue())
-	ch <- prometheus.MustNewConstMetric(testCounter, prometheus.CounterValue, value , "asdf")
-	ch <- prometheus.MustNewConstMetric(testCounter, prometheus.CounterValue, 1.0 , "asdf2")
+func (e *Exporter) collectTestCounterMetric(ch chan<- prometheus.Metric) bool {
+	value1, value2 := getCounterValue()
+	ch <- prometheus.MustNewConstMetric(testCounter, prometheus.CounterValue,  float64(value1) , "counter1")
+	ch <- prometheus.MustNewConstMetric(testCounter, prometheus.CounterValue,  float64(value2) , "counter2")
 	return true
 }
 
 
-func getCounterValue() int{
-	counter := val
-	if val >= 10 {
-		val = 0
+func getCounterValue() (int, int){
+	counter1 := val1
+	counter2 := val2
+	if val1 >= 10 {
+		val1 = 0
 	} else {
-		val ++
+		val1 ++
 	}
-
-	return counter
+	val2 ++
+	return counter1, counter2
 }

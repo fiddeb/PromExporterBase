@@ -43,6 +43,7 @@ func main() {
 
 	)
 	version.Version = build.Version
+	version.Branch = build.Branch
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
