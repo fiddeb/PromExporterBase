@@ -24,7 +24,7 @@ var (
 	testCounter = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "testcounter_total"),
 		"a test counter",
-		[]string{"keyname"}, nil,
+		[]string{"keyname", "asdf"}, nil,
 	)
 
 )
@@ -102,7 +102,7 @@ func (e *Exporter) collectRandomGenMetric(ch chan<- prometheus.Metric) bool {
 
 func (e *Exporter) collectTestCounterMetric(ch chan<- prometheus.Metric) bool {
 	value1, value2 := getCounterValue()
-	ch <- prometheus.MustNewConstMetric(testCounter, prometheus.CounterValue,  float64(value1) , "counter1")
+	ch <- prometheus.MustNewConstMetric(testCounter, prometheus.CounterValue,  float64(value1) , "counter1", "12342")
 	ch <- prometheus.MustNewConstMetric(testCounter, prometheus.CounterValue,  float64(value2) , "counter2")
 	return true
 }

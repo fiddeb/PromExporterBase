@@ -37,21 +37,23 @@ func init() {
 func main() {
 	var (
 		webConfig     = webflag.AddFlags(kingpin.CommandLine)
-		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9107").String()
+		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9119").String()
 		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 		opts         = exporter.ExporterOpts{}
 
 	)
 	version.Version = build.Version
 	version.Branch = build.Branch
+
 	promlogConfig := &promlog.Config{}
+
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
+	
 	logger := promlog.New(promlogConfig)
 
 	level.Info(logger).Log("msg", fmt.Sprintf("Starting %s", exportername ), "version", version.Info())
-	level.Info(logger).Log("build_context", version.BuildContext())
 
 	exporter, err := exporter.New(opts, logger)
 	if err != nil {
@@ -59,7 +61,6 @@ func main() {
 		os.Exit(1)
 	}
 	prometheus.MustRegister(exporter)
-
 
 
 	http.Handle(*metricsPath,
@@ -83,7 +84,7 @@ func main() {
              <p><a href='` + *metricsPath + `'>Metrics</a></p>
              </dl>
              <h2>Build</h2>
-             <pre>` + version.Info() + ` ` + version.BuildContext() + `</pre>
+             <pre>` + version.Info() + `</pre>
              </body>
              </html>`))
 	})
