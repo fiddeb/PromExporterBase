@@ -1,8 +1,9 @@
 package exporter
 
 import (
-	"github.com/go-kit/log"
+	"log/slog"
 	"math/rand"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -41,12 +42,12 @@ type ExporterOpts struct {
 
 type Exporter struct {
 
-	logger           log.Logger
+	logger           *slog.Logger
 	requestLimitChan chan struct{}
 }
 
 // New returns an initialized Exporter.
-func New(opts ExporterOpts, logger log.Logger) (*Exporter, error) {
+func New(opts ExporterOpts, logger *slog.Logger) (*Exporter, error) {
 
 	var requestLimitChan chan struct{}
 	if opts.RequestLimit > 0 {

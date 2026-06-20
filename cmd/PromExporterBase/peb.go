@@ -3,65 +3,63 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
+	"github.com/prometheus/common/promslog"
+	"github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/common/version"
 	"github.com/fiddeb/PromExporterBase/pkg/exporter"
 	"github.com/prometheus/exporter-toolkit/web"
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"github.com/fiddeb/PromExporterBase/pkg/build"
 )
+
 const exportername = "PromExporterBase"
 
 type promHTTPLogger struct {
-	logger log.Logger
+	logger *slog.Logger
 }
 
 func (l promHTTPLogger) Println(v ...interface{}) {
-	level.Error(l.logger).Log("msg", fmt.Sprint(v...))
+	l.logger.Error(fmt.Sprint(v...))
 }
 
 func init() {
-	prometheus.MustRegister(version.NewCollector(exportername))
+	prometheus.MustRegister(versioncollector.NewCollector(exportername))
 }
 
 func main() {
 	var (
-		webConfig     = webflag.AddFlags(kingpin.CommandLine)
-		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9119").String()
-		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
-		opts         = exporter.ExporterOpts{}
-
+		webConfig   = webflag.AddFlags(kingpin.CommandLine, ":9119")
+		metricsPath = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+		opts        = exporter.ExporterOpts{}
 	)
 	version.Version = build.Version
 	version.Branch = build.Branch
 
-	promlogConfig := &promlog.Config{}
+	promlogConfig := &promslog.Config{}
 
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
-	
-	logger := promlog.New(promlogConfig)
 
-	level.Info(logger).Log("msg", fmt.Sprintf("Starting %s", exportername ), "version", version.Info())
+	logger := promslog.New(promlogConfig)
+
+	logger.Info("Starting "+exportername, "version", version.Info())
 
 	exporter, err := exporter.New(opts, logger)
 	if err != nil {
-		level.Error(logger).Log("msg", "Error creating the exporter", "err", err)
+		logger.Error("Error creating the exporter", "err", err)
 		os.Exit(1)
 	}
 	prometheus.MustRegister(exporter)
-
 
 	http.Handle(*metricsPath,
 		promhttp.InstrumentMetricHandler(
@@ -78,9 +76,9 @@ func main() {
 	)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
-             <head><title>`+ exportername + `</title></head>
+             <head><title>` + exportername + `</title></head>
              <body>
-             <h1>`+ exportername + `</h1>
+             <h1>` + exportername + `</h1>
              <p><a href='` + *metricsPath + `'>Metrics</a></p>
              </dl>
              <h2>Build</h2>
@@ -97,10 +95,9 @@ func main() {
 		fmt.Fprintf(w, "OK")
 	})
 
-	level.Info(logger).Log("msg", "Listening on address", "address", *listenAddress)
-	srv := &http.Server{Addr: *listenAddress}
-	if err := web.ListenAndServe(srv, *webConfig, logger); err != nil {
-		level.Error(logger).Log("msg", "Error starting HTTP server", "err", err)
+	srv := &http.Server{}
+	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
+		logger.Error("Error starting HTTP server", "err", err)
 		os.Exit(1)
 	}
 }
